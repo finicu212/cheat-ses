@@ -1,13 +1,15 @@
 # Steam Engine Simulator Cheat
 
-This is a fun tool designed to enhance your experience in the steam game [Steam Engine Simulator](https://store.steampowered.com/app/2381620/Steam_Engine_Simulator/). It allows you to control the water, heat, brakes, and water quantity parameters directly, allowing you to go up to 4e6 the standard heat controls.
+This is a fun tool designed to enhance your experience in the steam game [Steam Engine Simulator](https://store.steampowered.com/app/2381620/Steam_Engine_Simulator/). It allows you to control the water, heat, brakes, and water quantity parameters directly, allowing you to go up to 4e6% Heat
 
 This tool is written in Python, and utilizes the `pymem` and `keyboard` libraries to modify the game's process memory.
 
 
 ### Usage
 
-Download the .exe from the Releases tab, and launch it.
+Download the .exe from the Releases tab, and launch it. The cheat must be launched as Administrator.
+
+The cheat might instantly crash upon game launch, see https://github.com/finicu212/cheat-ses/issues/1. Relaunch the game if this happens.
 
 In game, you can control the parameters using the following keys:
 
