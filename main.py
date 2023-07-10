@@ -1,4 +1,5 @@
 from pymem import Pymem
+from pymem.exception import ProcessNotFound
 from pymem.process import module_from_name
 import keyboard
 import time
@@ -12,33 +13,43 @@ ptr_heat_ctrl = ptr_player_struct + [0xC18]
 ptr_brake_ctrl = ptr_player_struct + [0xC08]
 ptr_water_qty = ptr_player_struct + [0x918]
 
-pm = Pymem(process_name)
-module = module_from_name(pm.process_handle, process_name)
-base_address = module.lpBaseOfDll
+def get_game_process():
+    while True:
+        try:
+            pm = Pymem(process_name)
+            module = module_from_name(pm.process_handle, process_name)
+            base_address = module.lpBaseOfDll
+            print(f"Process '{process_name}' loaded. PID: {pm.process_id}!")
+            return pm, base_address
+        except ProcessNotFound:
+            print(f"Process '{process_name}' not found. Waiting...")
+            time.sleep(1)
 
-def calculate_pointer(offsets):
+def calculate_pointer(pm, base_address, offsets):
     pointer_address = base_address + base_address_offset
     for offset in offsets:
         pointer_address = pm.read_ulonglong(pointer_address) + offset
     return pointer_address
 
-def read_memory(offsets):
-    pointer_address = calculate_pointer(offsets)
+def read_memory(pm, base_address, offsets):
+    pointer_address = calculate_pointer(pm, base_address, offsets)
     value = pm.read_double(pointer_address)
     return value
 
-def write_memory(offsets, value):
-    pointer_address = calculate_pointer(offsets)
+def write_memory(pm, base_address, offsets, value):
+    pointer_address = calculate_pointer(pm, base_address, offsets)
     pm.write_double(pointer_address, value)
 
 class PlayerStruct:
-    def __init__(self):
-        self.water_ctrl = read_memory(ptr_water_ctrl)
-        self.heat_ctrl = read_memory(ptr_heat_ctrl)
-        self.brake_ctrl = read_memory(ptr_brake_ctrl)
-        self.water_qty = read_memory(ptr_water_qty)
+    def __init__(self, pm, base):
+        self.update(pm, base)
 
-    def update(self):
+    def update(self, pm, base_address):
+        self.water_ctrl = read_memory(pm, base_address, ptr_water_ctrl)
+        self.heat_ctrl = read_memory(pm, base_address, ptr_heat_ctrl)
+        self.brake_ctrl = read_memory(pm, base_address, ptr_brake_ctrl)
+        self.water_qty = read_memory(pm, base_address, ptr_water_qty)
+
         w = keyboard.is_pressed('w')
         s = keyboard.is_pressed('s')
         g = keyboard.is_pressed('g')
@@ -63,16 +74,16 @@ class PlayerStruct:
                 self.brake_ctrl = 0.0
         self.water_ctrl = min(pow(self.heat_ctrl, 0.08), 10.0) # Water control, up to 10x normal, based on current heat ctrl
 
-
-        write_memory(ptr_water_ctrl, self.water_ctrl)
-        write_memory(ptr_heat_ctrl, self.heat_ctrl)
-        write_memory(ptr_brake_ctrl, self.brake_ctrl)
-        write_memory(ptr_water_qty, self.water_qty)
+        write_memory(pm, base_address, ptr_water_ctrl, self.water_ctrl)
+        write_memory(pm, base_address, ptr_heat_ctrl, self.heat_ctrl)
+        write_memory(pm, base_address, ptr_brake_ctrl, self.brake_ctrl)
+        write_memory(pm, base_address, ptr_water_qty, self.water_qty)
 
 def main():
-    player = PlayerStruct()
+    pm, base_address = get_game_process()  
+    player = PlayerStruct(pm, base_address)
     while True:
-        player.update()
+        player.update(pm, base_address)
         time.sleep(0.1)
 
 
